@@ -8,15 +8,11 @@ namespace code_generator.utils
         public static string MODELS = "Models";
         public static string VIEWMODELS = "ViewModels";
         public static string REPOSITORIES = "Repositories";
-        public static string REPOSITORY = "Repository";
         public static string INTERFACES = "Interfaces";
-        public static string INTERFACE = "Interface";
         public static string CONTROLLERS = "Controllers";
         public static string APPCONTEXT = "AppContext";
-        public static string CONTEXT = "Context";
         public static string COMMON = "Common";
         public static string SERVICES = "Services";
-        public static string SERVICE = "Service";
 
         private static string GetModelText(ModelDeclare model, string namespaceText, string modelOrViewModel)
         {
@@ -38,6 +34,7 @@ namespace code_generator.utils
             sb.AppendLine(@"}");
             return sb.ToString();
         }
+
         public static string GenerateModelText(ModelDeclare model, string namespaceText)
         {
             return GetModelText(model, namespaceText, MODELS);
@@ -48,23 +45,122 @@ namespace code_generator.utils
             return GetModelText(model, namespaceText, VIEWMODELS);
         }
 
-        public static string GenerateRepositoryText(ModelDeclare model, string namespaceText)
+        public static string GenerateRepositoryText(string modelName, string namespaceText)
         {
             StringBuilder sb = new StringBuilder();
+            sb.AppendLine(string.Format(@"using {0}.{1};", namespaceText, MODELS));
+            sb.AppendLine(string.Format(@"using {0}.{1}.{2};", namespaceText, REPOSITORIES, INTERFACES));
+            sb.AppendLine();
             sb.AppendLine(string.Format(@"namespace {0}.{1}", namespaceText, REPOSITORIES));
             sb.AppendLine(@"{");
+            sb.AppendLine(string.Format(@"    public class {0}Repository", modelName));
+            sb.AppendLine(string.Format(@"        : BaseRepository<{0}>, I{0}Repository", modelName));
+            sb.AppendLine(@"    {");
+            sb.AppendLine(string.Format(@"        public {0}Repository({1} context)", modelName, APPCONTEXT));
+            sb.AppendLine(string.Format(@"            : base(context)", modelName));
+            sb.AppendLine(@"        {");
+            sb.AppendLine(@"        }");
+            sb.AppendLine(@"    }");
             sb.AppendLine(@"}");
             return sb.ToString();
         }
 
-        public static string GenerateRepositoryInterfaceText(ModelDeclare model, string namespaceText)
+        public static string GenerateRepositoryInterfaceText(string modelName, string namespaceText)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(@"using System;");
             sb.AppendLine(@"using System.Collections.Generic;");
+            sb.AppendLine(string.Format(@"using {0}.{1};", namespaceText, MODELS));
             sb.AppendLine();
             sb.AppendLine(string.Format(@"namespace {0}.{1}.{2}", namespaceText, REPOSITORIES, INTERFACES));
             sb.AppendLine(@"{");
+            sb.AppendLine(string.Format(@"    public interface I{0}Repository", modelName));
+            sb.AppendLine(string.Format(@"        : IBaseRepository<{0}>", modelName));
+            sb.AppendLine(@"    {");
+            sb.AppendLine(@"    }");
+            sb.AppendLine(@"}");
+            return sb.ToString();
+        }
+
+        public static string GenerateServiceText(string modelName, string namespaceText)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(@"using System;");
+            sb.AppendLine(@"using System.Collections.Generic;");
+            sb.AppendLine(@"using AutoMapper;");
+            sb.AppendLine(string.Format(@"using {0}.{1}.{2};", namespaceText, REPOSITORIES, INTERFACES));
+            sb.AppendLine(string.Format(@"using {0}.{1}.{2};", namespaceText, SERVICES, INTERFACES));
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"namespace {0}.{1}", namespaceText, SERVICES));
+            sb.AppendLine(@"{");
+            sb.AppendLine(string.Format(@"    public class {0}Service : I{0}Service", modelName));
+            sb.AppendLine(@"    {");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"        protected {0} _context;", APPCONTEXT));
+            sb.AppendLine(string.Format(@"        protected I{0}Repository _{1}Repository;", modelName, modelName.ToLower()));
+            sb.AppendLine(@"        protected IMapper _mapper;");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"        public {0}Service({2} context, IMapper mapper, I{0}Repository {1}Repository)", modelName, modelName.ToLower(), APPCONTEXT));
+            sb.AppendLine(@"        {");
+            sb.AppendLine(@"            this._context = context;");
+            sb.AppendLine(@"            this._mapper = mapper;");
+            sb.AppendLine(string.Format(@"            this._{0}Repository = {0}Repository;", modelName.ToLower()));
+            sb.AppendLine(@"        }");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"        public void Add(ViewModels.{0} viewModel)", modelName));
+            sb.AppendLine(@"        {");
+            sb.AppendLine(@"            Guid id = Guid.NewGuid();");
+            sb.AppendLine(string.Format(@"            var model = this._mapper.Map<Models.{0}>(viewModel);", modelName));
+            sb.AppendLine(@"            model.Id = id;");
+            sb.AppendLine(string.Format(@"            this._{0}Repository.Add(model);", modelName.ToLower()));
+            sb.AppendLine(@"            this._context.SaveChanges();");
+            sb.AppendLine(@"        }");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"        public void Update(Guid id, ViewModels.{0} viewModel)", modelName));
+            sb.AppendLine(@"        {");
+            sb.AppendLine(string.Format(@"            var model = this._{0}Repository.Get(id);", modelName.ToLower()));
+            sb.AppendLine(string.Format(@"            this._mapper.Map<ViewModels.{0}, Models.{0}>(viewModel, model);", modelName));
+            sb.AppendLine(string.Format(@"            this._{0}Repository.Update(model);", modelName.ToLower()));
+            sb.AppendLine(@"            this._context.SaveChanges();");
+            sb.AppendLine(@"        }");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"        public void Remove(Guid id, ViewModels.{0} viewModel)", modelName));
+            sb.AppendLine(@"        {");
+            sb.AppendLine(string.Format(@"            var model = this._{0}Repository.Get(id);", modelName.ToLower()));
+            sb.AppendLine(string.Format(@"            this._{0}Repository.Remove(model);", modelName.ToLower()));
+            sb.AppendLine(@"            this._context.SaveChanges();");
+            sb.AppendLine(@"        }");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"        public ViewModels.{0} Get(Guid id)", modelName));
+            sb.AppendLine(@"        {");
+            sb.AppendLine(string.Format(@"            var model = this._{0}Repository.Get(id);", modelName.ToLower()));
+            sb.AppendLine(string.Format(@"            return model != null ? _mapper.Map<ViewModels.{0}>(model) : null;", modelName));
+            sb.AppendLine(@"        }");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"        public IEnumerable<ViewModels.{0}> GetAll()", modelName));
+            sb.AppendLine(@"        {");
+            sb.AppendLine(string.Format(@"            var collection = this._{0}Repository.Get();", modelName.ToLower()));
+            sb.AppendLine(string.Format(@"            return _mapper.Map<IEnumerable<ViewModels.{0}>>(collection);", modelName));
+            sb.AppendLine(@"        }");
+            sb.AppendLine();
+            sb.AppendLine(@"    }");
+            sb.AppendLine(@"}");
+            return sb.ToString();
+        }
+
+        public static string GenerateServiceInterfaceText(string modelName, string namespaceText)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(@"using System;");
+            sb.AppendLine(@"using System.Collections.Generic;");
+            sb.AppendLine(string.Format(@"using {0}.{1};", namespaceText, VIEWMODELS));
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"namespace {0}.{1}.{2}", namespaceText, SERVICES, INTERFACES));
+            sb.AppendLine(@"{");
+            sb.AppendLine(string.Format(@"    public interface I{0}Service", modelName));
+            sb.AppendLine(string.Format(@"        : IBaseService<{0}>", modelName));
+            sb.AppendLine(@"    {");
+            sb.AppendLine(@"    }");
             sb.AppendLine(@"}");
             return sb.ToString();
         }
@@ -99,6 +195,7 @@ namespace code_generator.utils
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(@"using System;");
             sb.AppendLine(@"using System.Collections.Generic;");
+            sb.AppendLine();
             sb.AppendLine(string.Format(@"namespace {0}.{1}.{2}", namespaceText, REPOSITORIES, INTERFACES));
             sb.AppendLine(@"{");
             sb.AppendLine(@"    public interface IBaseRepository<T>");
@@ -185,6 +282,33 @@ namespace code_generator.utils
             sb.AppendLine(@"        {");
             sb.AppendLine(@"            this._context.Set<T>().Update(model);");
             sb.AppendLine(@"        }");
+            sb.AppendLine();
+            sb.AppendLine(@"    }");
+            sb.AppendLine(@"}");
+            return sb.ToString();
+        }
+
+        public static string GenerateBaseServiceInterfaceText(string namespaceText)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(@"using System;");
+            sb.AppendLine(@"using System.Collections.Generic;");
+            sb.AppendLine();
+            sb.AppendLine(string.Format(@"namespace {0}.{1}.{2}", namespaceText, SERVICES, INTERFACES));
+            sb.AppendLine(@"{");
+            sb.AppendLine(@"    public interface IBaseService<T>");
+            sb.AppendLine(@"        where T : class");
+            sb.AppendLine(@"    {");
+            sb.AppendLine();
+            sb.AppendLine(@"        void Add(T viewModel);");
+            sb.AppendLine();
+            sb.AppendLine(@"        void Update(Guid id, T viewModel);");
+            sb.AppendLine();
+            sb.AppendLine(@"        void Remove(Guid id, T viewModel);");
+            sb.AppendLine();
+            sb.AppendLine(@"        T Get(Guid id);");
+            sb.AppendLine();
+            sb.AppendLine(@"        IEnumerable<T> GetAll();");
             sb.AppendLine();
             sb.AppendLine(@"    }");
             sb.AppendLine(@"}");

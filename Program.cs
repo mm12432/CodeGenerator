@@ -90,6 +90,7 @@ namespace code_generator
             CreateGuidEntityFile();
             CreateBaseRepositoryFile();
             CreateBaseRepositoryInterfaceFlie();
+            CreateBaseServiceInterfaceFlie();
             CreateAppContextFile();
             CreateAutoMapperConfigFile();
         }
@@ -124,6 +125,13 @@ namespace code_generator
         {
             string fileName = string.Format("{0}/{1}/{2}/{3}/IBaseRepository.cs", defaultTarget, cs, CSharpGenerator.REPOSITORIES, CSharpGenerator.INTERFACES);
             string fileContent = CSharpGenerator.GenerateBaseRepositoryInterfaceText(ns);
+            CreateFile(fileName, fileContent);
+        }
+
+        static void CreateBaseServiceInterfaceFlie()
+        {
+            string fileName = string.Format("{0}/{1}/{2}/{3}/IBaseService.cs", defaultTarget, cs, CSharpGenerator.SERVICES, CSharpGenerator.INTERFACES);
+            string fileContent = CSharpGenerator.GenerateBaseServiceInterfaceText(ns);
             CreateFile(fileName, fileContent);
         }
 
@@ -169,6 +177,34 @@ namespace code_generator
             CreateFile(fileName, fileContent);
         }
 
+        static void CreateRepositoryFile(ModelDeclare model)
+        {
+            string fileName = string.Format("{0}/{1}/{2}/{3}Repository.cs", defaultTarget, cs, CSharpGenerator.REPOSITORIES, model.Name);
+            string fileContent = CSharpGenerator.GenerateRepositoryText(model.Name, ns);
+            CreateFile(fileName, fileContent);
+        }
+
+        static void CreateRepositoryInterfaceFlie(ModelDeclare model)
+        {
+            string fileName = string.Format("{0}/{1}/{2}/{3}/I{4}Repository.cs", defaultTarget, cs, CSharpGenerator.REPOSITORIES, CSharpGenerator.INTERFACES, model.Name);
+            string fileContent = CSharpGenerator.GenerateRepositoryInterfaceText(model.Name, ns);
+            CreateFile(fileName, fileContent);
+        }
+
+        static void CreateServiceFile(ModelDeclare model)
+        {
+            string fileName = string.Format("{0}/{1}/{2}/{3}Service.cs", defaultTarget, cs, CSharpGenerator.SERVICES, model.Name);
+            string fileContent = CSharpGenerator.GenerateServiceText(model.Name, ns);
+            CreateFile(fileName, fileContent);
+        }
+
+        static void CreateServiceInterfaceFlie(ModelDeclare model)
+        {
+            string fileName = string.Format("{0}/{1}/{2}/{3}/I{4}Service.cs", defaultTarget, cs, CSharpGenerator.SERVICES, CSharpGenerator.INTERFACES, model.Name);
+            string fileContent = CSharpGenerator.GenerateServiceInterfaceText(model.Name, ns);
+            CreateFile(fileName, fileContent);
+        }
+
         static void CreateBusinessFiles()
         {
             string[] files = Directory.GetFiles(defaultSource);
@@ -180,6 +216,10 @@ namespace code_generator
                     var obj = JsonConvert.DeserializeObject<ModelDeclare>(jsonText);
                     CreateModelFile(obj);
                     CreateViewModelFile(obj);
+                    CreateRepositoryFile(obj);
+                    CreateRepositoryInterfaceFlie(obj);
+                    CreateServiceFile(obj);
+                    CreateServiceInterfaceFlie(obj);
                 }
 
             }
